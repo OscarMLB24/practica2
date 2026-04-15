@@ -5,6 +5,8 @@
 #include <time.h>
 #include <thread>
 #include <list>
+#include <cstdlib>
+#include <ctime>
 
 #include "comportamientos/comportamiento.hpp"
 
@@ -19,8 +21,6 @@
  * El técnico colabora con el ingeniero para resolver el problema de instalación de tuberías
  */
 
-
-
 class ComportamientoTecnico : public Comportamiento {
 public:
   // =========================================================================
@@ -32,7 +32,14 @@ public:
    * @param size Tamaño del mapa (si es 0, se inicializa más tarde)
    */
   ComportamientoTecnico(unsigned int size = 0) : Comportamiento(size) {
+    
     // Inicializar Variables de Estado
+    last_action = IDLE;
+    tiene_zapatillas = false;
+    giro45Izq = 0;
+
+    // Semilla para aleatoriedad (si se necesita)
+    srand(time(NULL));
   }
 
   /**
@@ -43,6 +50,7 @@ public:
   ComportamientoTecnico(std::vector<std::vector<unsigned char>> mapaR, 
                        std::vector<std::vector<unsigned char>> mapaC): 
                        Comportamiento(mapaR, mapaC) {
+    
     // Inicializar Variables de Estado
 
   }
@@ -67,7 +75,7 @@ public:
   // =========================================================================
   // ÁREA DE IMPLEMENTACIÓN DEL ESTUDIANTE
   // =========================================================================
-  
+
 /**
  * @brief Comportamiento del técnico para el Nivel 0.
  * @param sensores Datos actuales de los sensores.
@@ -116,6 +124,32 @@ public:
  * @return Acción a realizar.
  */
   Action ComportamientoTecnicoNivel_6(Sensores sensores);
+
+/**
+ * @brief Determina la mejor opción entre las 3 casillas que tiene delante
+ * @param i terreno que hay en la posición 1 de superficie (45 izq)
+ * @param c terreno que hay en la posición 2 de superficie (justo delante)
+ * @param d terreno que hay en la posición 3 de superficie (45 der)
+ * @param zap indica si estoy en posesion de las zapatillas
+ * @return 2 si es mejor WALK, 1 para TURN_SL y 3 para TURN_SR. 0 no hay nada interesante
+ */
+  int VeoCasillaInteresante(char i, char c, char d);
+
+/**
+ * @brief Determina si la casilla es viable por altura
+ * @param casilla tipo de terreno
+ * @param dif diferencia de altura entre casillas
+ * @param zap indica si estoy en posesion de las zapatillas
+ * @return 'P' si no es accesible por altura y casilla en otro caso
+ */
+  char ViablePorAltura(char casilla, int dif);
+
+  /**
+   * @brief Determina si la casilla es viable por personaje (si hay otro agente en la casilla, no es viable)
+   * @param casilla tipo de personaje en la casilla
+   * @return 'P' si no es accesible por personaje y casilla en otro caso
+   */
+  char ViablePorPersonaje(char casilla, char personaje);
 
 protected:
   // =========================================================================
@@ -188,7 +222,9 @@ private:
   // VARIABLES DE ESTADO (PUEDEN SER EXTENDIDAS POR EL ALUMNO)
   // =========================================================================
 
-  
+  Action last_action;     // Almacena la última acción ejecutada
+  bool tiene_zapatillas;  // Indica si el agente tiene las zapatillas 
+  int giro45Izq;          // Indicar el número de giros a la izq que quedan por dar
 };
 
 #endif

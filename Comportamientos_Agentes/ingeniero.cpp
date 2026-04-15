@@ -3,6 +3,8 @@
 #include <iostream>
 #include <queue>
 #include <set>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
@@ -44,9 +46,67 @@ Action ComportamientoIngeniero::think(Sensores sensores)
 }
 
 // Niveles iniciales (Comportamientos reactivos simples)
+
 Action ComportamientoIngeniero::ComportamientoIngenieroNivel_0(Sensores sensores)
 {
   Action accion = IDLE;
+
+  // El comportamineto de seguir un camino hasta encontrar una planta de T.residuos
+  // Poner el valor de los sensores de visión sobre los mapas
+  ActualizarMapa(sensores);
+
+  //Actualización de las variables de estado
+  if (sensores.superficie[0] == 'D') tiene_zapatillas = true;
+
+  //Definición del comportamiento
+  if (sensores.superficie[0] == 'U'){ //Llegué a una 'U'
+    return IDLE;
+  }
+  
+  char i = ViablePorAltura(sensores.superficie[1], sensores.cota[1] - sensores.cota[0], tiene_zapatillas);
+  char c = ViablePorAltura(sensores.superficie[2], sensores.cota[2] - sensores.cota[0], tiene_zapatillas);
+  char d = ViablePorAltura(sensores.superficie[3], sensores.cota[3] - sensores.cota[0], tiene_zapatillas);
+
+  i = ViablePorPersonaje(i, sensores.agentes[1]);
+  c = ViablePorPersonaje(c, sensores.agentes[2]);
+  d = ViablePorPersonaje(d, sensores.agentes[3]);
+
+  int pos = VeoCasillaInteresante(i, c, d, tiene_zapatillas);
+
+  switch(pos)
+  {
+    case 2: 
+
+      accion = WALK;
+      break;
+
+    case 1:
+
+      accion = TURN_SL;
+      break;
+
+    case 3:
+
+      accion = TURN_SR;
+      break;
+
+    default:
+
+      if(last_action == WALK){
+
+        if(rand() % 2 == 0) {
+          accion = TURN_SL;
+        } else {
+          accion = TURN_SR;
+        }
+      }
+      else accion = last_action;
+      break;
+  }
+
+  // Devolver la siguiente acción a hacer
+  last_action = accion;
+  
   return accion;
 }
 
@@ -121,6 +181,44 @@ Action ComportamientoIngeniero::ComportamientoIngenieroNivel_5(Sensores sensores
 Action ComportamientoIngeniero::ComportamientoIngenieroNivel_6(Sensores sensores)
 {
   return IDLE;
+}
+
+int ComportamientoIngeniero::VeoCasillaInteresante(char i, char c, char d, bool zap)
+{
+  // Priorizar casillas 'U'
+  if      (c == 'U') return 2; 
+  else if (i == 'U') return 1;
+  else if (d == 'U') return 3;
+  
+  // Si no hay 'U', priorizar 'D' si no se tienen las zapatillas
+  if (!zap){
+    if      (c == 'D') return 2;
+    else if (i == 'D') return 1;
+    else if (d == 'D') return 3;
+  }
+
+  // Si no hay 'U' ni 'D', priorizar 'C'
+  if      (c == 'C') return 2;
+  else if (i == 'C') return 1;
+  else if (d == 'C') return 3;
+
+  return 0;
+}
+
+char ComportamientoIngeniero::ViablePorAltura(char casilla, int dif, bool zap)
+{
+  if (abs(dif) <= 1 or (zap and abs(dif) <= 2)) 
+    return casilla;
+  else
+    return 'P';
+}
+
+char ComportamientoIngeniero::ViablePorPersonaje(char casilla, char personaje)
+{
+  if (personaje == '_')
+    return casilla;
+  else
+    return 'P';
 }
 
 // =========================================================================
