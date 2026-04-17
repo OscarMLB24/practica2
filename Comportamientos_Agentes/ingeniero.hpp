@@ -7,8 +7,6 @@
 #include <set>
 #include <thread>
 #include <time.h>
-#include <cstdlib>
-#include <ctime>
 
 #include "comportamientos/comportamiento.hpp"
 
@@ -27,11 +25,10 @@ public:
     // Inicializar Variables de Estado
     last_action = IDLE;
     tiene_zapatillas = false;
-    giro45Izq = 0;
+    accion_doble = false;
 
-    // Semilla para aleatoriedad (si se necesita)
-    srand(time(NULL));
-
+    // Inicializar el mapa de visitados con ceros
+    mapaVisitados = vector<vector<unsigned int>>(mapaResultado.size(), vector<unsigned int>(mapaResultado[0].size(), 0));
   }
 
   /**
@@ -121,30 +118,70 @@ public:
   Action ComportamientoIngenieroNivel_6(Sensores sensores);
 
   /**
-   * @brief Determina la mejor opción entre las 3 casillas que tiene delante
-   * @param i terreno que hay en la posición 1 de superficie (45 izq)
-   * @param c terreno que hay en la posición 2 de superficie (justo delante)
-   * @param d terreno que hay en la posición 3 de superficie (45 der)
-   * @param zap indica si estoy en posesion de las zapatillas
-   * @return 2 si es mejor WALK, 1 para TURN_SL y 3 para TURN_SR. 0 no hay nada interesante
-   */
-  int VeoCasillaInteresante(char i, char c, char d, bool zap);
+   * @brief Determina la mejor opción entre las 3 casillas que tiene delante para el Nivel 0.
+   * @param i terreno que hay en la posición 1 de superficie (45 izq).
+   * @param c terreno que hay en la posición 2 de superficie (justo delante).
+   * @param d terreno que hay en la posición 3 de superficie (45 der).
+   * @param zap indica si estoy en posesion de las zapatillas.
+   * @return 2 si es mejor WALK, 1 para TURN_SL, 3 para TURN_SR, 4 para JUMP, 5 para TURN_SL + JUMP, 6 para TURN_SR + JUMP. 0 no hay nada interesante.   */
+  int ElegirMovimiento0(Sensores sensores);
+
+  /*
+  * @brief Determina si la casilla es un camino para el Nivel 0.
+  * @param c tipo de terreno.
+  * @return true si la casilla es un camino, false si no lo es.
+  */
+  bool es_camino0(unsigned char c) const;
 
   /**
-   * @brief Determina si la casilla es viable por altura
-   * @param casilla tipo de terreno
-   * @param dif diferencia de altura entre casillas
-   * @param zap indica si estoy en posesion de las zapatillas
-   * @return 'P' si no es accesible por altura y casilla en otro caso
+   * @brief Determina si la casilla es viable por altura.
+   * @param casilla tipo de terreno.
+   * @param dif diferencia de altura entre casillas.
+   * @param zap indica si estoy en posesion de las zapatillas.
+   * @return True si la casilla es viable por altura, false si no lo es
    */
-  char ViablePorAltura(char casilla, int dif, bool zap);
+  bool ViablePorAltura(char casilla, int dif, bool zap);
   
   /**
-   * @brief Determina si la casilla es viable por personaje (si hay otro agente en la casilla, no es viable)
-   * @param casilla tipo de personaje en la casilla
-   * @return 'P' si no es accesible por personaje y casilla en otro caso
+   * @brief Determina si la casilla es viable por personaje (si hay otro agente en la casilla, no es viable).
+   * @param casilla tipo de personaje en la casilla.
+   * @return True si la casilla es viable por personaje, false si no lo es
    */
-  char ViablePorPersonaje(char casilla, char personaje);
+  bool ViablePorPersonaje(char casilla, char personaje);
+
+  /**
+   * @brief Determina si una casilla es transitable (no es muro ni precipicio ni bosque).
+   * @param casilla tipo de terreno en la casilla.
+   * @return true si la casilla es transitable, false si es un obstáculo
+   */
+  bool EsTransitable(char casilla);
+
+  /**
+   * @brief Determina si una casilla es viable teniendo en cuenta altura, personaje y transitabilidad.
+   * @param casilla tipo de terreno en la casilla.
+   * @param dif diferencia de altura entre casillas.
+   * @param personaje tipo de personaje en la casilla.
+   * @param zap indica si estoy en posesion de las zapatillas.
+   * @return True si la casilla es viable, false si no lo es
+   */
+  bool EsViable(char casilla, int dif, char personaje, bool zap);
+
+  /**
+   * @brief Determina la mejor opción entre las 3 casillas que tiene delante para el Nivel 1.
+   * @param i terreno que hay en la posición 1 de superficie (45 izq).
+   * @param c terreno que hay en la posición 2 de superficie (justo delante).
+   * @param d terreno que hay en la posición 3 de superficie (45 der).
+   * @param zap indica si estoy en posesion de las zapatillas.
+   * @return 2 si es mejor WALK, 1 para TURN_SL, 3 para TURN_SR, 4 para JUMP, 5 para TURN_SL + JUMP, 6 para TURN_SR + JUMP. 0 no hay nada interesante.
+   */
+  int ElegirMovimiento1(Sensores sensores);
+
+  /*
+  * @brief Determina si la casilla es un camino para el Nivel 1.
+  * @param c tipo de terreno.
+  * @return true si la casilla es un camino, false si no lo es.
+  */
+  bool es_camino1(unsigned char c) const;
 
 protected:
   // =========================================================================
@@ -182,8 +219,6 @@ protected:
    */
   ubicacion Delante(const ubicacion &actual) const;
 
-  bool es_camino(unsigned char c) const;
-
   /**
  * @brief Imprime por consola la secuencia de acciones de un plan para un agente.
  * @param plan  Lista de acciones del plan.
@@ -196,7 +231,6 @@ protected:
  * @param plan  Lista de pasos (fila, columna, operación).
  */
   void PintaPlan(const list<Paso> &plan);
-
 
   /**
  * @brief Convierte un plan de acciones en una lista de casillas para
@@ -221,7 +255,8 @@ private:
  
   Action last_action;     // Almacena la última acción ejecutada
   bool tiene_zapatillas;  // Indica si el agente tiene las zapatillas 
-  int giro45Izq;          // Indicar el número de giros a la izq que quedan por dar
+  vector<vector<unsigned int>> mapaVisitados; // Mapa para marcar las casillas visitadas (opcional, puede ser útil para eviter ciclos)
+  bool accion_doble;      // Indica si se quiere realizar un salto hacia una casilla diagonal (en cuyo caso se necesita realizar dos acciones: girar y luego caminar)
 };
 
 #endif

@@ -3,8 +3,6 @@
 #include <iostream>
 #include <queue>
 #include <set>
-#include <cstdlib>
-#include <ctime>
 
 using namespace std;
 
@@ -13,8 +11,8 @@ using namespace std;
 // =========================================================================
 
 Action ComportamientoTecnico::think(Sensores sensores) {
+  
   Action accion = IDLE;
-
 
   // Decisión del agente según el nivel
   switch (sensores.nivel) {
@@ -30,62 +28,52 @@ Action ComportamientoTecnico::think(Sensores sensores) {
   return accion;
 }
 
+///////////////////////////////////////////////////////////////////////////
 // Niveles del técnico
-Action ComportamientoTecnico::ComportamientoTecnicoNivel_0(Sensores sensores) {
-  
-Action accion = IDLE;
+///////////////////////////////////////////////////////////////////////////
+
+Action ComportamientoTecnico::ComportamientoTecnicoNivel_0(Sensores sensores)
+{  
+    Action accion = IDLE;
 
   // El comportamineto de seguir un camino hasta encontrar una planta de T.residuos
   // Poner el valor de los sensores de visión sobre los mapas
   ActualizarMapa(sensores);
 
-  //Actualización de las variables de estado
+  // Actualización de las variables de estado
   if (sensores.superficie[0] == 'D') tiene_zapatillas = true;
 
-  //Definición del comportamiento
+  // Definición del comportamiento
   if (sensores.superficie[0] == 'U'){ //Llegué a una 'U'
     return IDLE;
   }
 
-  char i = ViablePorAltura(sensores.superficie[1], sensores.cota[1] - sensores.cota[0]);
-  char c = ViablePorAltura(sensores.superficie[2], sensores.cota[2] - sensores.cota[0]);
-  char d = ViablePorAltura(sensores.superficie[3], sensores.cota[3] - sensores.cota[0]);
+  // Si la última acción fue WALK o JUMP, incrementar la casilla actual como visitada
+  if (last_action == WALK || last_action == JUMP) mapaVisitados[sensores.posF][sensores.posC]++; // Marcar la casilla actual como visitada
 
-  i = ViablePorPersonaje(i, sensores.agentes[1]);
-  c = ViablePorPersonaje(c, sensores.agentes[2]);
-  d = ViablePorPersonaje(d, sensores.agentes[3]);
-
-  int pos = VeoCasillaInteresante(i, c, d);
+  // Determinamos la mejor opción entre las 3 casillas que tiene delante
+  int pos = ElegirMovimiento0(sensores);
 
   switch(pos)
   {
-    case 2: 
+    case 2: // Andar hacia la casilla central (WALK)
 
       accion = WALK;
       break;
 
-    case 1:
+    case 1: // Girar hacia la izquierda (TURN_SL)
 
       accion = TURN_SL;
       break;
 
-    case 3:
+    case 3: // Girar hacia la derecha (TURN_SR)
 
       accion = TURN_SR;
       break;
 
-    default:
+    default: // Si no hay nada interesante, girar a la derecha por defecto
 
-      if(last_action == WALK){
-
-        if(rand() % 2 == 0) {
-          accion = TURN_SL;
-        } else {
-          accion = TURN_SR;
-        }
-      }
-      else accion = last_action;
-      break;
+      accion = TURN_SR; 
   }
 
   // Devolver la siguiente acción a hacer
@@ -94,96 +82,266 @@ Action accion = IDLE;
   return accion;
 }
 
-/**
- * @brief Comprueba si una celda es de tipo camino transitable.
- * @param c Carácter que representa el tipo de superficie.
- * @return true si es camino ('C'), zapatillas ('D') o meta ('U').
- */
-bool ComportamientoTecnico::es_camino(unsigned char c) const {
-  return (c == 'C' || c == 'D' || c == 'U');
+///////////////////////////////////////////////////////////////////////////
+
+Action ComportamientoTecnico::ComportamientoTecnicoNivel_1(Sensores sensores) 
+{
+    Action accion = IDLE;
+
+  // El comportamineto de seguir recorriendo el mapa y evitando las casillas más visitadas
+  // Poner el valor de los sensores de visión sobre los mapas
+  ActualizarMapa(sensores);
+
+  // Actualización de las variables de estado
+  if (sensores.superficie[0] == 'D') tiene_zapatillas = true;
+
+  // Si la última acción fue WALK o JUMP, incrementar la casilla actual como visitada
+  if (last_action == WALK || last_action == JUMP) mapaVisitados[sensores.posF][sensores.posC]++; // Marcar la casilla actual como visitada
+
+  // Determinamos la mejor opción entre las 3 casillas que tiene delante
+  int pos = ElegirMovimiento1(sensores);
+
+  switch(pos)
+  {
+    case 2: // Andar hacia la casilla central (WALK)
+
+      accion = WALK;
+      break;
+
+    case 1: // Girar hacia la izquierda (TURN_SL)
+
+      accion = TURN_SL;
+      break;
+
+    case 3: // Girar hacia la derecha (TURN_SR)
+
+      accion = TURN_SR;
+      break;
+
+    default: // Si no hay nada interesante, girar a la derecha por defecto
+
+      accion = TURN_SR; 
+  }
+
+  // Devolver la siguiente acción a hacer
+  last_action = accion;
+  
+  return accion;
 }
 
+///////////////////////////////////////////////////////////////////////////
 
-/**
- * @brief Comportamiento reactivo del técnico para el Nivel 1.
- * @param sensores Datos actuales de los sensores.
- * @return Acción a realizar.
- */
-Action ComportamientoTecnico::ComportamientoTecnicoNivel_1(Sensores sensores) {
-  return IDLE;
-}
-
-/**
- * @brief Comportamiento del técnico para el Nivel 2.
- * @param sensores Datos actuales de los sensores.
- * @return Acción a realizar.
- */
 Action ComportamientoTecnico::ComportamientoTecnicoNivel_2(Sensores sensores) {
   return IDLE;
 }
 
-/**
- * @brief Comportamiento del técnico para el Nivel 3.
- * @param sensores Datos actuales de los sensores.
- * @return Acción a realizar.
- */
+///////////////////////////////////////////////////////////////////////////
+
 Action ComportamientoTecnico::ComportamientoTecnicoNivel_3(Sensores sensores) {
   return IDLE;
 }
 
-/**
- * @brief Comportamiento del técnico para el Nivel 4.
- * @param sensores Datos actuales de los sensores.
- * @return Acción a realizar.
- */
+///////////////////////////////////////////////////////////////////////////
+
 Action ComportamientoTecnico::ComportamientoTecnicoNivel_4(Sensores sensores) {
   return IDLE;
 }
 
-/**
- * @brief Comportamiento del técnico para el Nivel 5.
- * @param sensores Datos actuales de los sensores.
- * @return Acción a realizar.
- */
+///////////////////////////////////////////////////////////////////////////
+
 Action ComportamientoTecnico::ComportamientoTecnicoNivel_5(Sensores sensores) {
   return IDLE;
 }
 
-/**
- * @brief Comportamiento del técnico para el Nivel 6.
- * @param sensores Datos actuales de los sensores.
- * @return Acción a realizar.
- */
+///////////////////////////////////////////////////////////////////////////
+
 Action ComportamientoTecnico::ComportamientoTecnicoNivel_6(Sensores sensores) {
   return IDLE;
 }
 
-int ComportamientoTecnico::VeoCasillaInteresante(char i, char c, char d)
+// ========================================================================
+// FUNCIONES AUXILIARES
+// ========================================================================
+
+///////////////////////////////////////////////////////////////////////////
+// Nivel 0 y 1: Funciones auxiliares para el comportamiento reactivo
+///////////////////////////////////////////////////////////////////////////
+
+int ComportamientoTecnico::ElegirMovimiento0(Sensores sensores)
 {
-  if      (c == 'U') return 2; 
-  else if (i == 'U') return 1;
-  else if (d == 'U') return 3;
-  else if      (c == 'C') return 2;
-  else if (i == 'C') return 1;
-  else if (d == 'C') return 3;
-  else return 0;
+  // Miramos la superficie de las casillas 
+  char i  = sensores.superficie[1]; // Casilla de la izquierda
+  char c  = sensores.superficie[2]; // Casilla de delante
+  char d  = sensores.superficie[3]; // Casilla de la derecha
+
+  if(!es_camino0(i) && !es_camino0(c) && !es_camino0(d)) return 0; // Si no son caminos transitables, no hay nada interesante
+
+  // Comprobamos si las casillas son viables por altura y por personaje, sino marcamos como 'P'
+  bool i_viable  = ViablePorAltura(i,  sensores.cota[1] - sensores.cota[0], tiene_zapatillas) && ViablePorPersonaje(i,  sensores.agentes[1]);
+  bool c_viable  = ViablePorAltura(c,  sensores.cota[2] - sensores.cota[0], tiene_zapatillas) && ViablePorPersonaje(c,  sensores.agentes[2]);
+  bool d_viable  = ViablePorAltura(d,  sensores.cota[3] - sensores.cota[0], tiene_zapatillas) && ViablePorPersonaje(d,  sensores.agentes[3]);
+
+  if(!i_viable)  i  = 'P';
+  if(!c_viable)  c  = 'P'; 
+  if(!d_viable)  d  = 'P';
+
+  // Calculamos las orientaciones de izquierda y derecha a partir del rumbo actual
+  Orientacion or_i  = static_cast<Orientacion>((sensores.rumbo + 7) % 8);
+  Orientacion or_d  = static_cast<Orientacion>((sensores.rumbo + 1) % 8);
+
+  // Calculamos las ubicaciones de las casillas de izquierda, centro y derecha
+  ubicacion ub_i  = Delante({sensores.posF, sensores.posC, or_i});
+  ubicacion ub_c  = Delante({sensores.posF, sensores.posC, sensores.rumbo});
+  ubicacion ub_d  = Delante({sensores.posF, sensores.posC, or_d});
+
+  // Calculamos el número de veces que se han visitado las casillas de izquierda, centro y derecha
+  int visit_i;
+  int visit_c;
+  int visit_d;
+
+  // Si la casilla es camino, obtenemos el número de visitas, sino la marcamos como el valor máximo (para que no influya en la decisión)
+  if(es_camino0(i)) visit_i = mapaVisitados[ub_i.f][ub_i.c];
+  else visit_i = numeric_limits<int>::max();
+
+  if(es_camino0(c)) visit_c = mapaVisitados[ub_c.f][ub_c.c];
+  else visit_c = numeric_limits<int>::max();
+
+  if(es_camino0(d)) visit_d = mapaVisitados[ub_d.f][ub_d.c];
+  else visit_d = numeric_limits<int>::max();
+
+  // Priorizar casillas 'U'
+  if      (c  == 'U') return 2; 
+  else if (d  == 'U') return 3;
+  else if (i  == 'U') return 1;
+
+  // Si no hay 'U', priorizar 'D' si no se tienen las zapatillas
+  if (!tiene_zapatillas){
+    if      (c  == 'D') return 2;
+    else if (d  == 'D') return 3;
+    else if (i  == 'D') return 1;
+  }
+
+  // Si no hay 'U' ni 'D', priorizar la casilla 'C' menos visitada
+  if      (c  == 'C' && visit_c <= visit_i && visit_c <= visit_d) return 2;
+  else if (d  == 'C' && visit_d <= visit_c && visit_d <= visit_i) return 3;
+  else if (i  == 'C' && visit_i <= visit_c && visit_i <= visit_d) return 1;
+
+  // Si no hay 'C', ppriorizar cualquier casilla menos visitada
+  if      (es_camino0(c) && visit_c <= visit_i && visit_c <= visit_d) return 2;
+  else if (es_camino0(d) && visit_d <= visit_i && visit_d <= visit_c) return 3;
+  else if (es_camino0(i) && visit_i <= visit_c && visit_i <= visit_d) return 1;
+
+  return 0;
 }
 
-char ComportamientoTecnico::ViablePorAltura(char casilla, int dif)
+///////////////////////////////////////////////////////////////////////////
+
+bool ComportamientoTecnico::es_camino0(unsigned char c) const
+{
+  return (c == 'C' || c == 'D' || c == 'U'/*) || (tiene_zapatillas && c == 'B'*/);
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+bool ComportamientoTecnico::ViablePorAltura(char casilla, int dif, bool zap)
 {
   if (abs(dif) <= 1) 
-    return casilla;
+    return true;
   else
-    return 'P';
+    return false;
 }
 
-char ComportamientoTecnico::ViablePorPersonaje(char casilla, char personaje)
+///////////////////////////////////////////////////////////////////////////
+
+bool ComportamientoTecnico::ViablePorPersonaje(char casilla, char personaje)
 {
   if (personaje == '_')
-    return casilla;
+    return true;
   else
-    return 'P';
+    return false;
 }
+
+///////////////////////////////////////////////////////////////////////////
+
+int ComportamientoTecnico::ElegirMovimiento1(Sensores sensores)
+{
+ // Miramos la superficie de las casillas 
+  char i  = sensores.superficie[1]; // Casilla de la izquierda
+  char c  = sensores.superficie[2]; // Casilla de delante
+  char d  = sensores.superficie[3]; // Casilla de la derecha
+
+  if(!es_camino1(i, tiene_zapatillas) && !es_camino1(c, tiene_zapatillas) && !es_camino1(d, tiene_zapatillas)) return 0; // Si no son caminos transitables, no hay nada interesante
+
+  // Comprobamos si las casillas son viables por altura y por personaje, sino marcamos como 'P'
+  bool i_viable  = ViablePorAltura(i,  sensores.cota[1] - sensores.cota[0], tiene_zapatillas) && ViablePorPersonaje(i,  sensores.agentes[1]);
+  bool c_viable  = ViablePorAltura(c,  sensores.cota[2] - sensores.cota[0], tiene_zapatillas) && ViablePorPersonaje(c,  sensores.agentes[2]);
+  bool d_viable  = ViablePorAltura(d,  sensores.cota[3] - sensores.cota[0], tiene_zapatillas) && ViablePorPersonaje(d,  sensores.agentes[3]);
+
+  if(!i_viable)  i  = 'P';
+  if(!c_viable)  c  = 'P'; 
+  if(!d_viable)  d  = 'P';
+
+  // Calculamos las orientaciones de izquierda y derecha a partir del rumbo actual
+  Orientacion or_i  = static_cast<Orientacion>((sensores.rumbo + 7) % 8);
+  Orientacion or_d  = static_cast<Orientacion>((sensores.rumbo + 1) % 8);
+
+  // Calculamos las ubicaciones de las casillas de izquierda, centro y derecha
+  ubicacion ub_i  = Delante({sensores.posF, sensores.posC, or_i});
+  ubicacion ub_c  = Delante({sensores.posF, sensores.posC, sensores.rumbo});
+  ubicacion ub_d  = Delante({sensores.posF, sensores.posC, or_d});
+
+  // Calculamos el número de veces que se han visitado las casillas de izquierda, centro y derecha
+  int visit_i;
+  int visit_c;
+  int visit_d;
+
+  // Si la casilla es camino, obtenemos el número de visitas, sino la marcamos como el valor máximo (para que no influya en la decisión)
+  if(es_camino1(i, tiene_zapatillas)) visit_i = mapaVisitados[ub_i.f][ub_i.c];
+  else visit_i = numeric_limits<int>::max();
+
+  if(es_camino1(c, tiene_zapatillas)) visit_c = mapaVisitados[ub_c.f][ub_c.c];
+  else visit_c = numeric_limits<int>::max();
+
+  if(es_camino1(d, tiene_zapatillas)) visit_d = mapaVisitados[ub_d.f][ub_d.c];
+  else visit_d = numeric_limits<int>::max();
+
+  // Prioriar 'X' si la energía es menor de 500
+  if(sensores.energia < 500){
+    if      (c  == 'X') return 2;
+    else if (d  == 'X') return 3;
+    else if (i  == 'X') return 1;
+  }
+
+  // Priorizar 'D' si no se tienen las zapatillas
+  if (!tiene_zapatillas){
+    if      (c  == 'D') return 2;
+    else if (d  == 'D') return 3;
+    else if (i  == 'D') return 1;
+  }
+
+  // Priorizar 'B' si se tienen las zapatillas para explorar zonas inaccesibles
+  if (tiene_zapatillas){
+    if      (c  == 'B' && visit_c <= visit_d && visit_c <= visit_i) return 2;
+    else if (d  == 'B' && visit_d <= visit_c && visit_d <= visit_i) return 3;
+    else if (i  == 'B' && visit_i <= visit_c && visit_i <= visit_d) return 1;
+  }
+
+  // Priorizar la casilla menos visitada entre las opciones viables
+  if      (es_camino1(c, tiene_zapatillas) && visit_c <= visit_i && visit_c <= visit_d) return 2;
+  else if (es_camino1(d, tiene_zapatillas) && visit_d <= visit_i && visit_d <= visit_c) return 3;
+  else if (es_camino1(i, tiene_zapatillas) && visit_i <= visit_c && visit_i <= visit_d) return 1;
+
+  return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+bool ComportamientoTecnico::es_camino1(unsigned char c, bool zap) const
+{
+  return (c == 'C' || c == 'S' || c == 'D' || c == 'U' || c == 'X' /*|| c == 'H' || c == 'A')*/) || (zap && c == 'B');
+}
+
+///////////////////////////////////////////////////////////////////////////
 
 // =========================================================================
 // FUNCIONES PROPORCIONADAS
@@ -358,8 +516,6 @@ void ComportamientoTecnico::ActualizarMapa(Sensores sensores) {
   }
 }
 
-
-
 /**
  * @brief Determina si una casilla es transitable para el técnico.
  * En esta práctica, si el técnico tiene zapatillas, el bosque ('B') es transitable.
@@ -370,7 +526,7 @@ void ComportamientoTecnico::ActualizarMapa(Sensores sensores) {
  */
 bool ComportamientoTecnico::EsCasillaTransitableLevel0(int f, int c, bool tieneZapatillas) {
   if (f < 0 || f >= mapaResultado.size() || c < 0 || c >= mapaResultado[0].size()) return false;
-  return es_camino(mapaResultado[f][c]);  // Solo 'C', 'S', 'D', 'U' son transitables en Nivel 0
+  return es_camino0(mapaResultado[f][c]);  // Solo 'C', 'S', 'D', 'U' son transitables en Nivel 0
 }
 
 /**
@@ -407,7 +563,6 @@ ubicacion ComportamientoTecnico::Delante(const ubicacion &actual) const {
   }
   return delante;
 }
-
 
 /**
  * @brief Imprime por consola la secuencia de acciones de un plan.
@@ -451,8 +606,6 @@ void ComportamientoTecnico::PintaPlan(const list<Action> &plan)
   }
   cout << "( longitud " << plan.size() << ")" << endl;
 }
-
-
 
 /**
  * @brief Convierte un plan de acciones en una lista de casillas para
@@ -555,5 +708,3 @@ void ComportamientoTecnico::VisualizaPlan(const ubicacion &st,
     it++;
   }
 }
-
-

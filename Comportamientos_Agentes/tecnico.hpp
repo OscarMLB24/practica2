@@ -5,8 +5,6 @@
 #include <time.h>
 #include <thread>
 #include <list>
-#include <cstdlib>
-#include <ctime>
 
 #include "comportamientos/comportamiento.hpp"
 
@@ -36,10 +34,9 @@ public:
     // Inicializar Variables de Estado
     last_action = IDLE;
     tiene_zapatillas = false;
-    giro45Izq = 0;
 
-    // Semilla para aleatoriedad (si se necesita)
-    srand(time(NULL));
+    // Inicializar el mapa de visitados con ceros
+    mapaVisitados = vector<vector<unsigned int>>(mapaResultado.size(), vector<unsigned int>(mapaResultado[0].size(), 0));
   }
 
   /**
@@ -130,26 +127,48 @@ public:
  * @param i terreno que hay en la posición 1 de superficie (45 izq)
  * @param c terreno que hay en la posición 2 de superficie (justo delante)
  * @param d terreno que hay en la posición 3 de superficie (45 der)
- * @param zap indica si estoy en posesion de las zapatillas
  * @return 2 si es mejor WALK, 1 para TURN_SL y 3 para TURN_SR. 0 no hay nada interesante
  */
-  int VeoCasillaInteresante(char i, char c, char d);
+  int ElegirMovimiento0(Sensores sensores);
+
+/**
+  * @brief Determina si la casilla es un camino para el Nivel 0.
+  * @param c tipo de terreno.
+  * @return true si la casilla es un camino, false si no lo es.
+  */
+  bool es_camino0(unsigned char c) const;
 
 /**
  * @brief Determina si la casilla es viable por altura
  * @param casilla tipo de terreno
  * @param dif diferencia de altura entre casillas
  * @param zap indica si estoy en posesion de las zapatillas
- * @return 'P' si no es accesible por altura y casilla en otro caso
- */
-  char ViablePorAltura(char casilla, int dif);
+ * @return True si la casilla es viable por altura, false si no lo es
+  */
+  bool ViablePorAltura(char casilla, int dif, bool zap);
 
   /**
    * @brief Determina si la casilla es viable por personaje (si hay otro agente en la casilla, no es viable)
    * @param casilla tipo de personaje en la casilla
-   * @return 'P' si no es accesible por personaje y casilla en otro caso
+   * True si la casilla es viable por personaje, false si no lo es
    */
-  char ViablePorPersonaje(char casilla, char personaje);
+  bool ViablePorPersonaje(char casilla, char personaje);
+
+  /**
+   * @brief Determina la mejor opción entre las 3 casillas que tiene delante para el Nivel 1.
+   * @param i terreno que hay en la posición 1 de superficie (45 izq).
+   * @param c terreno que hay en la posición 2 de superficie (justo delante).
+   * @param d terreno que hay en la posición 3 de superficie (45 der).
+   * @return 2 si es mejor WALK, 1 para TURN_SL y 3 para TURN_SR. 0 no hay nada interesante.
+   */
+  int ElegirMovimiento1(Sensores sensores);
+
+  /*
+  * @brief Determina si la casilla es un camino para el Nivel 1.
+  * @param c tipo de terreno.
+  * @return true si la casilla es un camino, false si no lo es.
+  */
+  bool es_camino1(unsigned char c, bool zap) const;
 
 protected:
   // =========================================================================
@@ -188,26 +207,17 @@ protected:
    */
   ubicacion Delante(const ubicacion &actual) const;
 
-  /**
-   * @brief Comprueba si una celda es de tipo transitable por defecto.
-   * @param c Carácter que representa el tipo de superficie.
-   * @return true si es camino ('C'), zapatillas ('D') o meta ('U').
-   */
-  bool es_camino(unsigned char c) const;
-
     /**
  * @brief Imprime por consola la secuencia de acciones de un plan para un agente.
  * @param plan  Lista de acciones del plan.
  */
   void PintaPlan(const list<Action> &plan);
 
-
 /**
  * @brief Imprime las coordenadas y operaciones de un plan de tubería.
  * @param plan  Lista de pasos (fila, columna, operación).
  */
   void PintaPlan(const list<Paso> &plan);
-
 
   /**
  * @brief Convierte un plan de acciones en una lista de casillas para
@@ -224,7 +234,7 @@ private:
 
   Action last_action;     // Almacena la última acción ejecutada
   bool tiene_zapatillas;  // Indica si el agente tiene las zapatillas 
-  int giro45Izq;          // Indicar el número de giros a la izq que quedan por dar
+  vector<vector<unsigned int>> mapaVisitados; // Mapa para marcar las casillas visitadas (opcional, puede ser útil para eviter ciclos)
 };
 
 #endif
